@@ -254,9 +254,10 @@ function getOverlapedWrecks($wrecks) {
             $dy = $wrecks[$i]->y - $wrecks[$j]->y;
 
             if (sqrt(($dx * $dx) + ($dy * $dy)) <= ($wrecks[$i]->radius + $wrecks[$j]->radius)) {
-                $x = (min($wrecks[$i]->x, $wrecks[$j]->x)) + ($dx / 2);
-                $y = (min($wrecks[$i]->y, $wrecks[$j]->y)) + ($dy / 2);
-                $overlapedWrecks[] = $wrecks[$i];
+                //$x = (min($wrecks[$i]->x, $wrecks[$j]->x)) + ($dx / 2);
+                //$y = (min($wrecks[$i]->y, $wrecks[$j]->y)) + ($dy / 2);
+
+                $overlapedWrecks[] = ($wrecks[$i]->extra > $wrecks[$j]->extra) ? $wrecks[$i] : $wrecks[$j];
             }
         }
     }
