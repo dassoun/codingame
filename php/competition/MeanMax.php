@@ -13,7 +13,7 @@ define("WRECK", 4);
 class Point {
     public $x;
     public $y;
-    
+
     public function __construct($x, $y) {
         $this->x = $x;
         $this->y = $y;
@@ -34,7 +34,7 @@ class Unit {
     public $extra2;
     public $friction;
     public $maxAcc;
-    
+
     public function __construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2) {
         $this->unitId = $unitId;
         $this->unitType = $unitType;
@@ -47,12 +47,12 @@ class Unit {
         $this->vy = $vy;
         $this->extra = $extra;
         $this->extra2 = $extra2;
-        
+
         $this->friction = 0;
         $this->maxAcc = 0;
 
     }
-    
+
     public function getDestinationPoint() {
         $vx = $this->vx;
         $vy = $this->vy;
@@ -62,13 +62,13 @@ class Unit {
         while ($vx > 0 || $vy > 0) {
             $vx = round($vx * (1 - $this->friction));
             $vy = round($vy * (1 - $this->friction));
-            
+
 //            error_log(var_export("vx: " . $vx . ", vy: " . $vy, true));
-            
+
             $x += $vx;
             $y += $vy;
         }
-        
+
         return new Point($x, $y);
     }
 }
@@ -77,7 +77,7 @@ class PlayerUnit extends Unit {
     public function __construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2) {
         parent::__construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2);
     }
-    
+
     public function move($x, $y, $acc, $comment = "") {
         if ($comment == "") {
             echo($x . " " . $y . " " . $acc . "\n");
@@ -85,7 +85,7 @@ class PlayerUnit extends Unit {
             echo($x . " " . $y . " " . $acc . " " . $comment . "\n");
         }
     }
-    
+
     public function getNearestWreck($wrecks) {
         $distMin = 12000;
         foreach($wrecks as $wreck) {
@@ -97,19 +97,19 @@ class PlayerUnit extends Unit {
                 $wreckReturn = $wreck;
             }
         }
-        
+
         if (isSet($wreckReturn)) {
             return $wreckReturn;
         } else {
             return null;
         }
     }
-    
+
     public function getBiggestWreck($wrecks) {
         if (!isSet($wrecks)) {
             return null;
         }
-        
+
         $quantity = -1;
         foreach($wrecks as $wreck) {
             //error_log(var_export($wreck->extra, true));
@@ -118,23 +118,23 @@ class PlayerUnit extends Unit {
                 $wreckReturn = $wreck;
             }
         }
-        
+
         if (isSet($wreckReturn)) {
             return $wreckReturn;
         } else {
             return null;
         }
     }
-    
+
     public function getFullestTanker($tankers) {
         return $this->getBiggestWreck($tankers);
     }
-    
+
     public function getBiggestTanker($tankers) {
         if (!isSet($tankers)) {
             return null;
         }
-        
+
         $capacity = -1;
         foreach($tankers as $tanker) {
             if ($tanker->extra2 > $capacity) {
@@ -142,37 +142,37 @@ class PlayerUnit extends Unit {
                 $tankerReturn = $tanker;
             }
         }
-        
+
         if (isSet($tankerReturn)) {
             return $tankerReturn;
         } else {
             return null;
         }
     }
-    
+
     public function isOnWreck($wrecks) {
         if (!isSet($wrecks)) {
             return false;
         }
-        
+
         foreach($wrecks as $wreck) {
             $distX = abs($wreck->x - $this->x);// - $wreck->radius;
             $distY = abs($wreck->y - $this->y);// - $wreck->radius;
             $dist = sqrt(($distX * $distX) + ($distY * $distY));
-            
+
             if ($dist < $wreck->radius) {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     public function getDistance($x, $y) {
         $distX = abs($x - $this->x);
         $distY = abs($y - $this->y);
         $dist = sqrt(($distX * $distX) + ($distY * $distY));
-        
+
         return $dist;
     }
 }
@@ -180,17 +180,17 @@ class PlayerUnit extends Unit {
 class Reaper extends PlayerUnit {
     public function __construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2) {
         parent::__construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2);
-        
+
         $this->friction = 0.2;
         $this->maxAcc = 300;
     }
-    
+
 /*    public function isOnWreck($wreck) {
-        
+
         $distX = abs($wreck->x - $this->x);
         $distY = abs($wreck->y - $this->y);
         $dist = sqrt(($distX * $distX) + ($distY * $distY));
-        
+
         return ($dist <= $wreck->radius);
     }
 */
@@ -199,7 +199,7 @@ class Reaper extends PlayerUnit {
 class Destroyer extends PlayerUnit {
     public function __construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2) {
         parent::__construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2);
-        
+
         $this->friction = 0.3;
         $this->maxAcc = 300;
     }
@@ -208,7 +208,7 @@ class Destroyer extends PlayerUnit {
 class Tanker extends Unit {
     public function __construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2) {
         parent::__construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2);
-        
+
         $this->friction = 0.4;
         $this->maxAcc = 500;
     }
@@ -217,7 +217,7 @@ class Tanker extends Unit {
 class Doof extends PlayerUnit {
     public function __construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2) {
         parent::__construct($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2);
-        
+
         $this->friction = 0.25;
         $this->maxAcc = 300;
     }
@@ -225,17 +225,18 @@ class Doof extends PlayerUnit {
 
 function getOverlapedWrecks($wrecks) {
     $overlapedWrecks = array();
-    
+
     if (!isSet($wrecks)) {
         return $overlapedWrecks;
     }
-    
+
+/*
     foreach($wrecks as $key1 => $wreck1) {
         foreach($wrecks as $key2 => $wreck2) {
             if ($key1 != $key2) {
                 $dx = $wreck1->x - $wreck2->x;
                 $dy = $wreck1->y - $wreck2->y;
-                
+
                 if (sqrt(($dx * $dx) + ($dy * $dy)) <= ($wreck1->radius + $wreck2->radius)) {
                     $x = (min($wreck1->x, $wreck2->x)) + ($dx / 2);
                     $y = (min($wreck1->y, $wreck2->y)) + ($dy / 2);
@@ -244,7 +245,22 @@ function getOverlapedWrecks($wrecks) {
             }
         }
     }
-    
+*/
+    $nbWrecks = count($wrecks);
+
+    for ($i = 0; $i < $nbWrecks - 1; $i++) {
+        for ($j = $i + 1; $j < $nbWrecks; $j++) {
+            $dx = $wrecks[$i]->x - $wrecks[$j]->x;
+            $dy = $wrecks[$i]->y - $wrecks[$j]->y;
+
+            if (sqrt(($dx * $dx) + ($dy * $dy)) <= ($wrecks[$i]->radius + $wrecks[$j]->radius)) {
+                $x = (min($wrecks[$i]->x, $wrecks[$j]->x)) + ($dx / 2);
+                $y = (min($wrecks[$i]->y, $wrecks[$j]->y)) + ($dy / 2);
+                $overlapedWrecks[] = $wrecks[$i];
+            }
+        }
+    }
+
     return $overlapedWrecks;
 }
 
@@ -254,7 +270,7 @@ while (TRUE)
 {
     $startLoopTime = $previousTime = (microtime(true));
 //    error_log(var_export("a: " . $previousTime, true));
-    
+
     fscanf(STDIN, "%d",
         $myScore
     );
@@ -276,13 +292,13 @@ while (TRUE)
     fscanf(STDIN, "%d",
         $unitCount
     );
-    
+
     $reapers = array();
     $wrecks = array();
     $tankers = array();
     $destroyers = array();
     $doofs = array();
-    
+
     $overlapedWrecks = array();
 
 //    $elapsedTime = (microtime(true) - $previousTime);
@@ -290,7 +306,7 @@ while (TRUE)
 //    $previousTime = microtime(true);
 //    $totalElapsedTime = ($previousTime - $startLoopTime);
 //    error_log(var_export("a total: " . $totalElapsedTime, true));
-    
+
     for ($i = 0; $i < $unitCount; $i++)
     {
         fscanf(STDIN, "%d %d %d %f %d %d %d %d %d %d %d",
@@ -306,7 +322,7 @@ while (TRUE)
             $extra,
             $extra2
         );
-        
+
         if ($unitType == REAPER) {
             $reapers[$playerId] = new Reaper($unitId, $unitType, $playerId, $mass, $radius, $x, $y, $vx, $vy, $extra, $extra2);
         } else if ($unitType == WRECK) {
@@ -322,14 +338,17 @@ while (TRUE)
 
     // Write an action using echo(). DON'T FORGET THE TRAILING \n
     // To debug (equivalent to var_dump): error_log(var_export($var, true));
-    
+
     $overlapedWrecks = getOverlapedWrecks($wrecks);
     foreach($overlapedWrecks as $overlapedWreck) {
         error_log(var_export("x: " . $overlapedWreck->x . ", y: " . $overlapedWreck->y, true));
     }
-    
-    $nearestWreck = $reapers[0]->getNearestWreck($wrecks);
-    
+
+    $nearestWreck = $reapers[0]->getNearestWreck($overlapedWrecks);
+    if (!isSet($nearestWreck)) {
+        $nearestWreck = $reapers[0]->getNearestWreck($wrecks);
+    }
+
     // Reaper
     if (!$reapers[0]->isOnWreck($wrecks)) {
         if (isSet($nearestWreck)) {
@@ -348,7 +367,7 @@ while (TRUE)
         $reapers[0]->move($nearestWreck->x - $reapers[0]->vx, $nearestWreck->y - $reapers[0]->vy, $reapers[0]->maxAcc);
         //echo("WAIT\n");
     }
-    
+
     // Destroyer
     $bestEnemy = $enemyScore1 > $enemyScore2 ? $reapers[1] : $reapers[2];
     if ($myRage >= 60) {
@@ -373,7 +392,7 @@ while (TRUE)
             $destroyers[0]->move($bestEnemy->x, $bestEnemy->y, $destroyers[0]->maxAcc);
         }
 */
-        
+
         if ($destroyers[0]->getDistance($bestEnemy->x, $bestEnemy->y) <= 2000) {
             if ($bestEnemy->isOnWreck($wrecks)) {
                 echo("SKILL " . ($bestEnemy->x + 1) . " " . $bestEnemy->y . " Skill " . $bestEnemy->x . "\n");
@@ -392,7 +411,7 @@ while (TRUE)
             echo("WAIT nothing\n");
         }
     }
-    
+
     // Doof
     $doofs[0]->move($bestEnemy->x, $bestEnemy->y, $doofs[0]->maxAcc);
 }
