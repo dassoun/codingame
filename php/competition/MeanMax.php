@@ -90,6 +90,22 @@ class Unit {
         return false;
     }
 
+    public function isTankerOver($tankers) {
+        //error_log(var_export("isOilOver", true));
+        if (!isSet($tankers)) {
+            return false;
+        }
+
+        //error_log(var_export("isOilOver2", true));
+        foreach($tankers as $tanker) {
+            if ($this->getDistance($tanker->x, $tanker->y) < $tanker->radius) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function getWrecksUnder($wrecks) {
         $wrecksUnder = array();
 
@@ -128,14 +144,18 @@ class PlayerUnit extends Unit {
         }
     }
 
-    public function getNearestWreck($wrecks, $reapers, $nbreaper, $oils) {
+    public function getNearestWreck($wrecks, $reapers, $nbreaper, $oils, $tankers) {
         $distMin = 12000;
         foreach($wrecks as $wreck) {
             $distX = abs($wreck->x - $this->x) - $wreck->radius;
             $distY = abs($wreck->y - $this->y) - $wreck->radius;
             $dist = sqrt(($distX * $distX) + ($distY * $distY));
 
-            if (!$this->isOilOver($oils)) {
+            if (count($wrecks) == 1) {
+                return $wrecks[0];
+            }
+
+            if (!$this->isOilOver($oils) && !$this->isTankerOver($tankers)) {
                 if (($reapers[1]->getDistance($wreck->x, $wreck->y) > $reapers[0]->getDistance($wreck->x, $wreck->y)) ||
                                 ($reapers[2]->getDistance($wreck->x, $wreck->y) > $reapers[0]->getDistance($wreck->x, $wreck->y))) {
                     if ($dist < $distMin) {
@@ -218,15 +238,6 @@ class PlayerUnit extends Unit {
         return false;
     }
 
-/*
-    public function getDistance($x, $y) {
-        $distX = abs($x - $this->x);
-        $distY = abs($y - $this->y);
-        $dist = sqrt(($distX * $distX) + ($distY * $distY));
-
-        return $dist;
-    }
-*/
 }
 
 class Reaper extends PlayerUnit {
@@ -237,15 +248,6 @@ class Reaper extends PlayerUnit {
         $this->maxAcc = 300;
     }
 
-/*    public function isOnWreck($wreck) {
-
-        $distX = abs($wreck->x - $this->x);
-        $distY = abs($wreck->y - $this->y);
-        $dist = sqrt(($distX * $distX) + ($distY * $distY));
-
-        return ($dist <= $wreck->radius);
-    }
-*/
 }
 
 class Destroyer extends PlayerUnit {
@@ -309,6 +311,28 @@ function compareWrecksByAvailableWater($wreck1, $wreck2) {
     } else {
         return -1;
     }
+}
+
+// restourne le Destroyer le plus proche d'un Tanker
+function getDestroyerInBestPosition($tankers, $destroyers) {
+    if (!isSet($tankers) || !isSet($destroyers)) {
+        return null;
+    }
+
+    $returnDestroyer = null;
+    $distanceMin = 12000;
+
+    foreach($destroyers as $destroyer) {
+        foreach($tankers as $tanker) {
+            $d = $destroyer->getDistance($tanker->x, $tanker->y);
+            if ($d < $distanceMin) {
+                $distanceMin = $d;
+                $returnDestroyer = $destroyer;
+            }
+        }
+    }
+
+    return $returnDestroyer;
 }
 
 
@@ -399,9 +423,9 @@ while (TRUE)
         error_log(var_export("x: " . $overlapedWreck->x . ", y: " . $overlapedWreck->y, true));
     }
 
-    $nearestWreck = $reapers[0]->getNearestWreck($overlapedWrecks, $reapers, 0, $oils);
+    $nearestWreck = $reapers[0]->getNearestWreck($overlapedWrecks, $reapers, 0, $oils, $tankers);
     if (!isSet($nearestWreck)) {
-        $nearestWreck = $reapers[0]->getNearestWreck($wrecks, $reapers, 0, $oils);
+        $nearestWreck = $reapers[0]->getNearestWreck($wrecks, $reapers, 0, $oils, $tankers);
     }
 
     // Reaper
@@ -413,9 +437,18 @@ while (TRUE)
                 $reapers[0]->move($nearestWreck->x - $reapers[0]->vx, $nearestWreck->y - $reapers[0]->vy, $reapers[0]->maxAcc);
             }
         } else {
-            // On se rapproche de notre Destroyer
-            //$reapers[0]->move(0, 0, 300);
-            $reapers[0]->move($destroyers[0]->x - $reapers[0]->vx, $destroyers[0]->y - $reapers[0]->vy, 300);
+//            // On se rapproche de notre Destroyer
+//            //$reapers[0]->move(0, 0, 300);
+//            $reapers[0]->move($destroyers[0]->x - $reapers[0]->vx, $destroyers[0]->y - $reapers[0]->vy, 300);
+
+            // On se rapproche du destroyer le plus proche d'un tanker
+            $bestDestroyer = getDestroyerInBestPosition($tankers, $destroyers);
+            if (isSet($bestDestroyer)) {
+                $reapers[0]->move($bestDestroyer->x - $reapers[0]->vx, $bestDestroyer->y - $reapers[0]->vy, 300);
+            } else {
+                // On se rapproche de notre Destroyer
+                $reapers[0]->move($destroyers[0]->x - $reapers[0]->vx, $destroyers[0]->y - $reapers[0]->vy, 300);
+            }
         }
     } else {
         if (isSet($nearestWreck)) {
@@ -446,7 +479,7 @@ while (TRUE)
         error_log(var_export("====================", true));
     }
 
-
+    error_log(var_export("*** Rage: " . $myRage . " ***", true));
     if ($myRage >= 60) {
 /*
         // Si le meilleur ennemi récupère de l'eau
@@ -471,22 +504,41 @@ while (TRUE)
 */
 
 
+/*
         if ($destroyers[0]->getDistance($bestEnemy->x, $bestEnemy->y) <= 2000) {
             if ($bestEnemy->isOnWreck($wrecks)) {
                 echo("SKILL " . ($bestEnemy->x + 1) . " " . $bestEnemy->y . " Skill " . $bestEnemy->x . "\n");
             } else {
-                $destroyers[0]->move($bestEnemy->x, $bestEnemy->y, $destroyers[0]->maxAcc);
+                $destroyers[0]->move($bestEnemy->x - $destroyers[0]->vx, $bestEnemy->y - $destroyers[0]->vy, $destroyers[0]->maxAcc);
             }
         } else {
-            $destroyers[0]->move($bestEnemy->x, $bestEnemy->y, $destroyers[0]->maxAcc);
+            $destroyers[0]->move($bestEnemy->x - $destroyers[0]->vx, $bestEnemy->y - $destroyers[0]->vy, $destroyers[0]->maxAcc);
         }
-
+*/
+        if ($destroyers[0]->getDistance($reapers[0]->x, $reapers[0]->y) <= 2000) {
+            if ($reapers[0]->getDistance($bestEnemy->x, $bestEnemy->y) <= 1000) {
+                if ($bestEnemy->isOnWreck($wrecks)) {
+                    error_log(var_export("*** Best enemy close enough: Grenade !!! ***", true));
+                    echo("SKILL " . $reapers[0]->x . " " . $reapers[0]->y . "\n");
+                } else {
+                    error_log(var_export("*** Best enemy close enough, but not on wreck ***", true));
+                    $destroyers[0]->move($bestEnemy->x - $destroyers[0]->vx, $bestEnemy->y - $destroyers[0]->vy, $destroyers[0]->maxAcc);
+                }
+            } else {
+                error_log(var_export("*** Best enemy NOT close enough to reaper (" . $reapers[0]->getDistance($bestEnemy->x, $bestEnemy->y) . ") ***", true));
+                $destroyers[0]->move($bestEnemy->x - $destroyers[0]->vx, $bestEnemy->y - $destroyers[0]->vy, $destroyers[0]->maxAcc);
+            }
+        } else {
+            error_log(var_export("*** Reaper NOT close enough to destroyer ***", true));
+            $destroyers[0]->move($bestEnemy->x - $destroyers[0]->vx, $bestEnemy->y - $destroyers[0]->vy, $destroyers[0]->maxAcc);
+        }
     } else {
+        error_log(var_export("*** Not enough rage for Destroyer (" . $myRage . ") ***", true));
         $fullestTanker = $destroyers[0]->getFullestTanker($tankers);
         if (isSet($fullestTanker)) {
-            $destroyers[0]->move($fullestTanker->x, $fullestTanker->y, $destroyers[0]->maxAcc);
+            $destroyers[0]->move($fullestTanker->x - $destroyers[0]->vx, $fullestTanker->y - $destroyers[0]->vy, $destroyers[0]->maxAcc);
         } else {
-            echo("WAIT nothing\n");
+            $destroyers[0]->move($bestEnemy->x - $destroyers[0]->vx, $bestEnemy->y - $destroyers[0]->vy, $destroyers[0]->maxAcc);
         }
     }
 
@@ -497,11 +549,16 @@ while (TRUE)
                 error_log(var_export("XXXXXXXXXXXXXXXXXXXXXXXXXX", true));
                 if (!$reapers[0]->isOnTheWreck($wrecksUnderBestEnemy[0])) {
                     if (!$wrecksUnderBestEnemy[0]->isOilOver($oils)) {
-                        echo("SKILL " . $wrecksUnderBestEnemy[0]->x . " " . $wrecksUnderBestEnemy[0]->y . "\n");
-                        error_log(var_export("*** Oil on x: " . $wrecksUnderBestEnemy[0]->x . ", " . $wrecksUnderBestEnemy[0]->y . " ***", true));
+                        if ($wrecksUnderBestEnemy[0]->extra >= 0) {
+                            echo("SKILL " . $wrecksUnderBestEnemy[0]->x . " " . $wrecksUnderBestEnemy[0]->y . "\n");
+                            error_log(var_export("*** Oil on x: " . $wrecksUnderBestEnemy[0]->x . ", " . $wrecksUnderBestEnemy[0]->y . " ***", true));
+                        } else {
+                            $doofs[0]->move($bestEnemy->x, $bestEnemy->y, $doofs[0]->maxAcc);
+                            error_log(var_export("*** Not enough water (" . $wrecksUnderBestEnemy[0]->extra . ") ***", true));
+                        }
                     } else {
                         $doofs[0]->move($bestEnemy->x, $bestEnemy->y, $doofs[0]->maxAcc);
-                        error_log(var_export("*** Oil already there ***", true));
+                        error_log(var_export("*** Oil already there (x: " . $wrecksUnderBestEnemy[0]->x . ", y: " . $wrecksUnderBestEnemy[0]->y . ")***", true));
                     }
                 } else {
                     $doofs[0]->move($bestEnemy->x, $bestEnemy->y, $doofs[0]->maxAcc);
