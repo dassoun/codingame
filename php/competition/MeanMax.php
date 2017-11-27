@@ -127,6 +127,9 @@ class Unit {
     }
 
     public function isOnTheWreck($wreck) {
+        if (!isSet($wreck)) {
+            return false;
+        }
         return ($this->getDistance($wreck->x, $wreck->y) <= $wreck->radius);
     }
 }
@@ -144,7 +147,7 @@ class PlayerUnit extends Unit {
         }
     }
 
-    public function getNearestWreck($wrecks, $reapers, $nbreaper, $oils, $tankers) {
+    public function getNearestWreck($wrecks, $reapers, $nbreaper, $oils, $tankers, $doofs) {
         $distMin = 12000;
         foreach($wrecks as $wreck) {
             $distX = abs($wreck->x - $this->x) - $wreck->radius;
@@ -165,6 +168,41 @@ class PlayerUnit extends Unit {
                 }
             } else {
                 error_log(var_export("oil in x: " . $this->x . ", y: " . $this->y, true));
+            }
+        }
+
+        if (isSet($wreckReturn)) {
+            return $wreckReturn;
+        } else {
+            return null;
+        }
+    }
+
+
+    public function getFarestWreck($wrecks, $reapers, $nbreaper, $oils, $tankers, $doofs) {
+        $distMax = 0;
+
+        if (count($wrecks) == 1) {
+            return $wrecks[0];
+        }
+
+        foreach($wrecks as $wreck) {
+            foreach($doofs as $doof) {
+                $distX = abs($wreck->x - $doof->x) - $wreck->radius;
+                $distY = abs($wreck->y - $doof->y) - $wreck->radius;
+                $dist = sqrt(($distX * $distX) + ($distY * $distY));
+
+                if (!$this->isOilOver($oils) && !$this->isTankerOver($tankers)) {
+                    if (($reapers[1]->getDistance($wreck->x, $wreck->y) > $reapers[0]->getDistance($wreck->x, $wreck->y)) ||
+                                    ($reapers[2]->getDistance($wreck->x, $wreck->y) > $reapers[0]->getDistance($wreck->x, $wreck->y))) {
+                        if ($dist > $distMax) {
+                            $distMax = $dist;
+                            $wreckReturn = $wreck;
+                        }
+                    }
+                } else {
+                    error_log(var_export("oil in x: " . $this->x . ", y: " . $this->y, true));
+                }
             }
         }
 
@@ -423,9 +461,10 @@ while (TRUE)
         error_log(var_export("x: " . $overlapedWreck->x . ", y: " . $overlapedWreck->y, true));
     }
 
-    $nearestWreck = $reapers[0]->getNearestWreck($overlapedWrecks, $reapers, 0, $oils, $tankers);
-    if (!isSet($nearestWreck)) {
-        $nearestWreck = $reapers[0]->getNearestWreck($wrecks, $reapers, 0, $oils, $tankers);
+    $nearestWreck = $reapers[0]->getNearestWreck($overlapedWrecks, $reapers, 0, $oils, array(), $doofs);
+    $nearestWreckNoOverlaped = $reapers[0]->getNearestWreck($wrecks, $reapers, 0, $oils, array(), $doofs);
+    if (!isSet($nearestWreck)/* || $reapers[0]->isOnTheWreck($nearestWreckNoOverlaped)*/) {
+        $nearestWreck = $nearestWreckNoOverlaped;
     }
 
     // Reaper
